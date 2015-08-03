@@ -190,11 +190,11 @@ var commands = exports.commands = {
 		this.pmTarget = (targetUser || this.targetUsername);
 		if (!targetUser || !targetUser.connected) {
 			if (targetUser && !targetUser.connected) {
-				this.errorReply("User " + this.targetUsername + " is offline.");
+				this.errorReply("User " + this.targetUsername + " is offline. Try using /tell to send them an offline message.");
 				return;
 			} else {
-				this.errorReply("User "  + this.targetUsername + " not found. Did you misspell their name?");
-				return this.parse('/help msg');
+				this.errorReply("User "  + this.targetUsername + " not found. Did you misspell their name? If they are offline, try using /tell to send them an offline message.");
+				return this.parse('/help tell');
 			}
 			return;
 		}
@@ -256,57 +256,16 @@ var commands = exports.commands = {
 			}
 		}
 
-		var emoticons = parseEmoticons(user.getIdentity(room.id), target);
-		if (emoticons) {
-		    target = "/html " + emoticons;
-		}
+		var emoteMsg = parseEmoticons(target, room, user, true);
+		if ((!user.blockEmoticons && !targetUser.blockEmoticons) && emoteMsg) target = '/html ' + emoteMsg;
 
 		var message = '|pm|' + user.getIdentity() + '|' + targetUser.getIdentity() + '|' + target;
 		user.send(message);
-		
-		if (targetUser !== user) {
-			if (Users.ShadowBan.checkBanned(user)) {
-				if (processing) {
-					Users.ShadowBan.addMessage(user, "Private to " +  targetUser.getIdentity(), oldtarg);
-				} else {
-					Users.ShadowBan.addMessage(user, "Private to " +  targetUser.getIdentity(), target);
-				}
-			} else {
-				targetUser.send(message);
-			}
-		}
-
 		if (targetUser !== user) targetUser.send(message);
 		targetUser.lastPM = user.userid;
 		user.lastPM = targetUser.userid;
 	},
 	msghelp: ["/msg OR /whisper OR /w [username], [message] - Send a private message."],
-
-	blockpm: 'ignorepms',
-	blockpms: 'ignorepms',
-	ignorepm: 'ignorepms',
-	ignorepms: function (target, room, user) {
-		if (user.ignorePMs === (target || true)) return this.sendReply("You are already blocking private messages! To unblock, use /unblockpms");
-		if (user.can('lock') && !user.can('bypassall')) return this.sendReply("You are not allowed to block private messages.");
-		user.ignorePMs = true;
-		if (target in Config.groups) {
-			user.ignorePMs = target;
-			return this.sendReply("You are now blocking private messages, except from staff and " + target + ".");
-		}
-		return this.sendReply("You are now blocking private messages, except from staff.");
-	},
-	ignorepmshelp: ["/blockpms - Blocks private messages. Unblock them with /unignorepms."],
-
-	unblockpm: 'unignorepms',
-	unblockpms: 'unignorepms',
-	unignorepm: 'unignorepms',
-	unignorepms: function (target, room, user) {
-		if (!user.ignorePMs) return this.sendReply("You are not blocking private messages! To block, use /blockpms");
-		user.ignorePMs = false;
-		return this.sendReply("You are no longer blocking private messages.");
-	},
-	unignorepmshelp: ["/unblockpms - Unblocks private messages. Block them with /blockpms."],
-
 	away: 'afk',
 	busy: 'afk',
 	sleep: 'afk',
